@@ -1,5 +1,14 @@
 #include <iostream>
 
-#include "Linear/List.h"
+#include "Heap/BinaryHeap.h"
 
-int main() { return 0; }
+int main() {
+  blp::BinaryHeap<int> bh;
+  for (uint32_t i{0}; i < 10; ++i) {
+    bh.Push(10 - i);
+  }
+  bh.Pop();
+  bh.PrintDebugMsg();
+
+  return 0;
+}

@@ -36,26 +36,79 @@ class BinaryHeap {
     _c = std::move(rhs._c);
     _comp = std::move(rhs._comp);
   }
-  Swap(BinaryHeap& rhs) {
+  void Swap(BinaryHeap& rhs) {
     std::swap(_c, rhs._c);
     std::swap(_comp, rhs._comp);
   }
 
-  const_referece Top() { return _c.front(); }
+  const_reference Top() { return _c.front(); }
   bool Empty() { return _c.empty(); }
 
   void Push(const value_type& value) {
-    // pass
+    _c.push_back(value);
+    _UpHeap();
   }
   void Push(value_type&& value) {
-    // pass
+    _c.push_back(std::move(value));
+    _UpHeap();
   }
   template <typename... Args>
   void Emplace(Args&&... args) {
-    // pass
+    _c.emplace_back(std::forward<Args>(args)...);
+    _UpHeap();
   }
   void Pop() {
-    // pass
+    if (_c.size() == 0) {
+      return;
+    }
+    std::swap(_c[0], _c[_c.size() - 1]);
+    _c.pop_back();
+    _DownHeap();
+  }
+
+  void PrintDebugMsg() {
+    for (auto e : _c) {
+      std::cout << e << ' ' << std::endl;
+    }
+  }
+
+ private:
+  void _UpHeap() {
+    if (_c.size() <= 1) {
+      return;
+    }
+    for (size_type i = _c.size() - 1; i > 0; i /= 2) {
+      if (_comp(_c[i], _c[i / 2])) {
+        std::swap(_c[i], _c[i / 2]);
+      } else {
+        break;
+      }
+    }
+  }
+
+  void _DownHeap() {
+    if (_c.size() <= 1) {
+      return;
+    }
+    for (size_type i = 0; i < _c.size();) {
+      size_type next_index{0};
+      if (2 * i < _c.size()) {
+        if (2 * i + 1 < _c.size()) {
+          next_index = _comp(_c[2 * i], _c[2 * i + 1]) ? 2 * i : 2 * i + 1;
+        } else {
+          next_index = 2 * i;
+        }
+      } else {
+        break;
+      }
+
+      if (_comp(_c[i], _c[next_index])) {
+        std::swap(_c[i], _c[next_index]);
+        i = next_index;
+      } else {
+        break;
+      }
+    }
   }
 
  private:
