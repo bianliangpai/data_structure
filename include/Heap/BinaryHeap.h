@@ -2,6 +2,7 @@
 #define HEAP_BINRARY_HEP_H_
 
 #include <algorithm>
+#include <functional>
 #include <vector>
 
 namespace blp {
@@ -67,19 +68,32 @@ class BinaryHeap {
   }
 
   void PrintDebugMsg() {
-    for (auto e : _c) {
-      std::cout << e << ' ' << std::endl;
-    }
-  }
+    _PrintBinaryHeap("", 1, false);
+    std::cout << std::endl;
+  };
 
  private:
+  void _PrintBinaryHeap(const std::string& prefix, size_type index,
+                        bool is_left) {
+    if (index > _c.size()) {
+      return;
+    }
+
+    std::cout << prefix;
+    std::cout << (is_left ? "|--" : " --");
+    std::cout << _c[index - 1] << std::endl;
+
+    _PrintBinaryHeap(prefix + "    ", index * 2, true);
+    _PrintBinaryHeap(prefix + "    ", index * 2 + 1, false);
+  }
+
   void _UpHeap() {
     if (_c.size() <= 1) {
       return;
     }
-    for (size_type i = _c.size() - 1; i > 0; i /= 2) {
-      if (_comp(_c[i], _c[i / 2])) {
-        std::swap(_c[i], _c[i / 2]);
+    for (size_type i = _c.size(); i > 1; i /= 2) {
+      if (_comp(_c[i - 1], _c[i / 2 - 1])) {
+        std::swap(_c[i - 1], _c[i / 2 - 1]);
       } else {
         break;
       }
@@ -90,21 +104,21 @@ class BinaryHeap {
     if (_c.size() <= 1) {
       return;
     }
-    for (size_type i = 0; i < _c.size();) {
-      size_type next_index{0};
-      if (2 * i < _c.size()) {
-        if (2 * i + 1 < _c.size()) {
-          next_index = _comp(_c[2 * i], _c[2 * i + 1]) ? 2 * i : 2 * i + 1;
+    for (size_type i = 1; i <= _c.size();) {
+      size_type next_i{0};
+      if (2 * i <= _c.size()) {
+        if (2 * i + 1 <= _c.size()) {
+          next_i = _comp(_c[2 * i - 1], _c[2 * i]) ? 2 * i : 2 * i + 1;
         } else {
-          next_index = 2 * i;
+          next_i = 2 * i;
         }
       } else {
         break;
       }
 
-      if (_comp(_c[i], _c[next_index])) {
-        std::swap(_c[i], _c[next_index]);
-        i = next_index;
+      if (!_comp(_c[i - 1], _c[next_i - 1])) {
+        std::swap(_c[i - 1], _c[next_i - 1]);
+        i = next_i;
       } else {
         break;
       }

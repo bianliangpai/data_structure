@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "Heap/BinaryHeap.h"
 
 int main() {
