@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "Heap/BinaryHeap.h"
+#include "include/Heap/BinaryHeap.h"
 
 int main() {
   blp::BinaryHeap<int> bh;

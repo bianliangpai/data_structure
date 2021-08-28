@@ -14,6 +14,8 @@ template <typename T, typename Compare = std::less<T>,
 class BinaryHeap {
  private:
   typedef BinaryHeap<T, Compare, Container> this_type;
+  typedef typename Container::iterator iterator;
+  typedef const iterator const_iterator;
 
  public:
   typedef T value_type;
@@ -23,8 +25,6 @@ class BinaryHeap {
   typedef const T& const_reference;
   typedef std::size_t size_type;
   typedef std::ptrdiff_t difference_type;
-  typedef typename Container::iterator iterator;
-  typedef const iterator const_iterator;
 
  public:
   BinaryHeap() : _c{}, _comp{} {}
@@ -82,11 +82,12 @@ class BinaryHeap {
     }
 
     std::cout << prefix;
-    std::cout << (is_left ? "|--" : " --");
+    std::cout << (is_left ? "|--" : "L--");
     std::cout << _c[index - 1] << std::endl;
 
-    _PrintBinaryHeap(prefix + "    ", index * 2, true);
-    _PrintBinaryHeap(prefix + "    ", index * 2 + 1, false);
+    _PrintBinaryHeap(prefix + (is_left ? "|   " : "    "), index * 2, true);
+    _PrintBinaryHeap(prefix + (is_left ? "|   " : "    "), index * 2 + 1,
+                     false);
   }
 
   void _UpHeap() {
