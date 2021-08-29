@@ -1,83 +1,130 @@
 #ifndef LINEAR_LIST_H_
 #define LINEAR_LIST_H_
 
+#include <algorithm>
 #include <list>
 #include <memory>
+#include <type_traits>
 
 namespace blp {
 
 template <typename T>
-struct Node {
- private:
-  using container_pointer = Node*;
+class _ListNode {
+ public:
+  typedef T value_type;
+  typedef value_type* pointer;
+  typedef const value_type* const_pointer;
 
  public:
-  Node() : next(nullptr) {}
+  template <typename... Args>
+  _ListNode(Args&&... args) : next{nullptr} {
+    _element = new T(std::forward<Args>(args)...);
+  }
+  _ListNode(const T& value) { _element = new T(value); }
+  _ListNode(T&& value) { _element = new T(std::move(value)); }
+  ~_ListNode() {
+    delete _element;
+    _element = pointer();
+    next = nullptr;
+  }
+
+  const_pointer Get() const { return _element; }
+
+  _ListNode* next;
 
  private:
-  Node(const Node&) = delete;
-  Node& operator=(const Node&) = delete;
-
- public:
-  T obj;
-  container_pointer next;
+  T* _element;
 };
 
-template <typename T, typename Node = Node<T>,
-          typename NodeAllocator = std::allocator<Node>,
-          typename ElemAllocator = std::allocator<T>>
+template <typename T>
+std::ostream& operator<<(std::ostream& os, const _ListNode<T>& ln) {
+  std::cout << static_cast<void*>(ln.next);
+  std::cout << "->";
+  std::cout << static_cast<void*>(const_cast<T*>(ln.Get()));
+  return os;
+}
+
+template <typename T, typename Node = _ListNode<T>,
+          typename Allocator = std::allocator<Node>>
 class List {
  private:
-  using value_type = Node;
-  using allocator_type = NodeAllocator;
-  using allocator_traits = std::allocator_traits<allocator_type>;
-  using size_type = std::size_t;
-  using reference = value_type&;
-  using const_reference = const value_type&;
-  using pointer = typename allocator_traits::pointer;
-  using const_pointer = typename allocator_traits::const_pointer;
+  typedef List<T, Node, Allocator> this_type;
+  typedef Allocator _allocator_type;
 
  public:
-  List() : begin_(nullptr), end_(nullptr) {}
+  typedef T value_type;
+  typedef std::size_t size_type;
+  typedef value_type& reference;
+  typedef const value_type& const_reference;
+  typedef value_type* pointer;
+  typedef const value_type* const_pointer;
+  class iterator {
+   public:
+    typedef Node value_type;
+    typedef value_type* pointer;
+    typedef const value_type* const_pointer;
+    typedef value_type& reference;
+    typedef const value_type& const_reference;
+
+   public:
+    iterator(const_pointer p) : _p{p} {}
+    iterator(const iterator& rhs) : _p{rhs._p} {}
+    typename this_type::reference operator*() { return *(_p->Get()); }
+    typename this_type::pointer operator->() { return _p->Get(); }
+    iterator& operator++() {
+      _p = _p->next;
+      return *this;
+    }
+    bool operator==(const iterator& rhs) { return _p == rhs._p; }
+    bool operator!=(const iterator& rhs) { return !(*this == rhs); }
+
+   private:
+    pointer _p;
+  };
+  typedef const iterator const_iterator;
+
+ public:
+  List() : _end(nullptr) { _begin = _end; }
   ~List() { clear(); }
 
-  bool empty() const { return (begin_ == nullptr); }
+  bool Empty() const { return (_begin == _end); }
 
-  size_type size() const {
+  size_type Size() const {
     size_type size = 0;
-    for (pointer it = begin_; it != end_; it = it->next) {
+    for (iterator it = _begin; it != _end; ++it) {
       size += 1;
     }
     return size;
   }
 
-  void clear() {
-    pointer it = begin_;
-    while (it != end_) {
-      pointer tmp = it;
-      it = it->next;
-      DestroyNode(tmp);
+  void Clear() {
+    iterator it = _begin;
+    while (it != _end) {
+      iterator tmp = it;
+      ++it;
+
+      delete std::addressof(*it);
     }
-    begin_ = nullptr;
+    _begin = _end;
   }
 
-  template <typename T>
-  pointer insert(const_pointer pos, T&& value) {
-    for (pointer it = begin_; it != end_; it = it->next) {
-      if (it->next == pos) {
-        InsertImpl(it);
+  template <typename V,
+            typename = std::enable_if_t<std::is_convertible_v<T, V>>>
+  iterator Insert(const iterator& pos, V&& value) {
+    for (iterator it = _begin; it != _end; ++it) {
+      iterator tmp = it;
+      if (++tmp == pos) {
+        Node* node = new Node(std::forward<V>(value));
+        node->next = it->next;
+        it->next = node;
         break;
       }
     }
   }
 
-  template <class... Args>
-  pointer emplace(const_pointer pos, Args&&... args) {
-    std::unique_ptr<T> pobj{nullptr};
-    ElemAllocator::construct(elem_allocator_, pobj.get(),
-                             std::forward<Args>(args)...);
-
-    return insert(pos, *pobj.get());
+  template <typename... Args>
+  iterator Emplace(const_iterator pos, Args&&... args) {
+    return Insert(pos, std::move({std::forward<Args>(args)...}));
   }
 
   void erase();
@@ -98,43 +145,10 @@ class List {
   void sort();
 
  private:
-  template <typename... Args>
-  void ConstructNode(pointer& new_node, Args&&... args) {
-    allacator_traits::construct(allocaltor_, new_node,
-                                std::forward<Args>(args)...);
-  }
-  void DestroyNode(pointer node) {
-    allacator_traits::destroy(allocaltor_, node);
-  }
+  iterator _begin;
+  iterator _end;
 
-  void InsertImpl(pointer p, const T& value) {
-    pointer new_node{nullptr};
-    AllocateNode(new_node);
-    new_node->obj = value;
-    new_node->next = p->next;
-    p->next = new_node;
-  }
-  void InsertImpl(pointer p, T&& value) {
-    pointer new_node{nullptr};
-    AllocateNode(new_node);
-    new_node->obj = std::move(value);
-    new_node->next = p->next;
-    p->next = new_node;
-  }
-
-  void ElemAssign(pointer new_node, const T& value) { new_node->obj = value; }
-
-  void ElemAssign(pointer new_node, T&& value) {
-    new_node->obj = std::move(value);
-  }
-
- private:
-  size_type size_;
-  pointer begin_;
-  pointer end_;
-
-  allocator_type allocator_;
-  ElemAllocator elem_allocator_;
+  _allocator_type _allocator;
 };
 
 }  // namespace blp
