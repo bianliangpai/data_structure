@@ -45,9 +45,7 @@ class _ListNode {
 
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const _ListNode<T>& ln) {
-  std::cout << static_cast<void*>(ln.next);
-  std::cout << "->";
-  std::cout << static_cast<void*>(const_cast<T*>(ln.Get()));
+  std::cout << *(ln.Get());
   return os;
 }
 
@@ -66,31 +64,53 @@ class List {
   typedef const value_type* const_pointer;
   class iterator {
    public:
-    typedef Node value_type;
+    typedef T value_type;
     typedef value_type* pointer;
     typedef const value_type* const_pointer;
     typedef value_type& reference;
     typedef const value_type& const_reference;
 
+   private:
+    typedef Node wrapper_value_type;
+    typedef wrapper_value_type* wrapper_pointer;
+    typedef const wrapper_value_type* const_wrapper_pointer;
+    typedef wrapper_value_type& wrapper_reference;
+    typedef const wrapper_value_type& const_wrapper_reference;
+
    public:
-    iterator(const_pointer p) : _p{const_cast<pointer>(p)} {}
-    iterator(const iterator& rhs) : _p{rhs._p} {}
-    reference operator*() const { return *_p; }
-    pointer operator->() const { return _p; }
+    iterator(const_wrapper_pointer wp = nullptr)
+        : _wp{const_cast<wrapper_pointer>(wp)} {}
+    iterator(const_wrapper_reference other) : _wp{other._wp} {}
+    reference operator*() const { return *const_cast<pointer>(_wp->Get()); }
+    pointer operator->() const { return _wp->Get(); }
     iterator& operator++() {
-      _p = _p->next;
+      _wp = _wp->next;
       return *this;
     }
-    bool operator==(const iterator& rhs) const { return _p == rhs._p; }
-    bool operator!=(const iterator& rhs) const { return !(*this == rhs); }
+    bool operator==(const iterator& other) const { return _wp == other._wp; }
+    bool operator!=(const iterator& other) const { return !(*this == other); }
+
+    const_wrapper_pointer get() const { return _wp; }
+    void set_next(const iterator& next_iterator) {
+      _wp->next = next_iterator._wp;
+    }
+    void set_next(wrapper_pointer next_wp) { _wp->next = next_wp; }
+    const_wrapper_pointer get_next() const { return _wp->next; }
 
    private:
-    pointer _p;
+    wrapper_pointer _wp;
   };
   typedef const iterator const_iterator;
 
  public:
   List() : _begin(nullptr), _end(nullptr) { _begin = _end; }
+  List(const List& other) : _begin(nullptr), _end(nullptr) {
+    _begin = _end;
+    for (value_type value : other) {
+      push_back(value);
+    }
+  }
+  List(List&& other) { swap(std::move(other)); }
   ~List() { clear(); }
 
   iterator begin() const { return _begin; }
@@ -105,7 +125,7 @@ class List {
   }
   List& operator=(List&& other) {
     clear();
-    swap(other);
+    swap(std::move(other));
   }
 
   void assign(size_type count, const T& value) {
@@ -114,21 +134,20 @@ class List {
       push_back(value);
     }
   }
-  template <typename InputIt>
+  template <typename InputIt,
+            typename = std::void_t<typename InputIt::value_type>>
   void assign(InputIt first, InputIt last) {
     clear();
     for (InputIt iit = first; iit != last; ++iit) {
       push_back(*iit);
     }
-    push_back(*last);
   }
 
-  reference front() { return *((*_begin).Get()); }
-  reference back() {
+  reference front() const { return *_begin; }
+  reference back() const {
     for (iterator it = _begin; it != _end; ++it) {
-      iterator tmp{it};
-      if (++tmp == _end) {
-        return *((*it).Get());
+      if (it.get_next() == _end) {
+        return *it;
       }
     }
   }
@@ -159,17 +178,17 @@ class List {
   iterator insert(const iterator& pos, V&& value) {
     if (pos == _begin) {
       iterator i{new Node(std::forward<V>(value))};
-      i->next = std::addressof(*pos);
+      i.set_next(pos);
       _begin = i;
       return i;
     }
 
     for (iterator it = _begin; it != _end; ++it) {
-      iterator tmp = it;
-      if (++tmp == pos) {
+      iterator tmp{it.get_next()};
+      if (tmp == pos) {
         iterator i{new Node(std::forward<V>(value))};
-        i->next = it->next;
-        it->next = std::addressof(*i);
+        i.set_next(it.get_next());
+        it.set_next(i);
         return i;
       }
     }
@@ -192,12 +211,11 @@ class List {
     }
 
     for (iterator it = _begin; it != _end; ++it) {
-      iterator tmp = it;
-      if (++tmp == pos) {
-        iterator i = it->next;
-        it->next = pos->next;
-        _Destroy(i);
-        return tmp;
+      iterator tmp{it.get_next()};
+      if (tmp == pos) {
+        it.set_next(pos.get_next());
+        _Destroy(pos);
+        return ++it;
       }
     }
 
@@ -205,9 +223,10 @@ class List {
     return _end;
   }
   iterator erase(const_iterator beg, const_iterator end) {
-    for (iterator it = beg; it != end && it != _end; ++it) {
-      erase(it);
+    for (iterator it = beg; it != end && it != _end;) {
+      it = erase(it);
     }
+    return end;
   }
 
   template <typename V,
@@ -218,14 +237,13 @@ class List {
 
   template <typename... Args>
   auto emplace_back(Args&&... args)
-      -> std::enable_if_t<std::is_constructible_v<T, Args...>, void> {
+      -> std::enable_if_t<std::is_constructible_v<T, Args...>> {
     push_back(std::move({std::forward<Args>(args)...}));
   }
 
   void pop_back() {
     for (iterator it = _begin; it != _end; ++it) {
-      iterator tmp{it};
-      if (++tmp == _end) {
+      if (it.get_next() == _end) {
         erase(it);
       }
     }
@@ -249,9 +267,9 @@ class List {
     size_type counter{0};
     for (iterator it = _begin; it != _end; ++it) {
       if (++counter >= count) {
-        iterator tmp{it};
-        erase(++tmp, _end);
-        it->next = std::addressof(_end);
+        iterator tmp{it.get_next()};
+        erase(tmp, _end);
+        it.set_next(_end);
         return;
       }
     }
@@ -265,7 +283,7 @@ class List {
   void swap(List& other) { std::swap(_begin, other._begin); }
 
  private:
-  void _Destroy(iterator it) { delete std::addressof(*it); }
+  void _Destroy(iterator it) { delete it.get(); }
 
  private:
   iterator _begin;
