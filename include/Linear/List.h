@@ -6,46 +6,37 @@
 #include <memory>
 #include <type_traits>
 
+#include "Utils/Node.h"
+
 namespace blp {
 
 template <typename T>
-class _ListNode {
+class _ListNode : public _NodeBase<T> {
+ private:
+  typedef _NodeBase<T> _Base;
+
  public:
-  typedef T value_type;
-  typedef value_type* pointer;
-  typedef const value_type* const_pointer;
+  typedef typename _Base::value_type value_type;
+  typedef typename _Base::pointer pointer;
+  typedef typename _Base::const_pointer const_pointer;
 
  public:
   template <typename... Args,
             typename = std::enable_if_t<std::is_constructible_v<T, Args...>>>
-  _ListNode(Args&&... args) : next{nullptr} {
-    _element = new T(std::forward<Args>(args)...);
-  }
-  _ListNode(const T& value) : next{nullptr} { _element = new T(value); }
-  _ListNode(T&& value) : next{nullptr} { _element = new T(std::move(value)); }
-  _ListNode(const _ListNode& other) : next{other.next} {
-    _element = new T(*other._element);
-  }
-  _ListNode(_ListNode&& other) : next{other.next}, _element{other._element} {}
-  ~_ListNode() {
-    delete _element;
-    _element = pointer();
-    next = nullptr;
-  }
-
-  // operator T() { return *_element; }
-
-  const_pointer Get() const { return _element; }
+  _ListNode(Args&&... args)
+      : next{nullptr}, _Base{std::forward<Args>(args)...} {}
+  _ListNode(const T& value) : next{nullptr}, _Base{value} {}
+  _ListNode(T&& value) : next{nullptr}, _Base{std::move(value)} {}
+  _ListNode(const _ListNode& other) : next{other.next}, _Base{*other} {}
+  _ListNode(_ListNode&& other) : next{other.next}, _Base{std::move(*other)} {}
+  ~_ListNode() { next = nullptr; }
 
   _ListNode* next;
-
- private:
-  T* _element;
 };
 
 template <typename T>
 std::ostream& operator<<(std::ostream& os, const _ListNode<T>& ln) {
-  std::cout << *(ln.Get());
+  std::cout << *ln;
   return os;
 }
 
@@ -81,8 +72,8 @@ class List {
     iterator(const_wrapper_pointer wp = nullptr)
         : _wp{const_cast<wrapper_pointer>(wp)} {}
     iterator(const_wrapper_reference other) : _wp{other._wp} {}
-    reference operator*() const { return *const_cast<pointer>(_wp->Get()); }
-    pointer operator->() const { return _wp->Get(); }
+    reference operator*() const { return *(*_wp); }
+    pointer operator->() const { return std::addressof(*_wp); }
     iterator& operator++() {
       _wp = _wp->next;
       return *this;
