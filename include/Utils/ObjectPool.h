@@ -37,9 +37,6 @@ struct _Node {
 
   void _Reset() { _p->~T(); }
 
- public:
-  node_pointer next;
-
  private:
   std::uint8_t _buf[sizeof(T)];
   pointer _p;
