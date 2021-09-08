@@ -1,6 +1,8 @@
 #ifndef INCLUDE_UTILS_NODE_H_
 #define INCLUDE_UTILS_NODE_H_
 
+namespace blp {
+
 template <typename T>
 class _NodeBase {
  public:
@@ -29,9 +31,13 @@ class _NodeBase {
   }
 
   reference operator*() const { return *_element; }
+  pointer operator->() const { return _element; }
+  pointer operator&() const { return _element; }
 
  private:
   T* _element;
 };
+
+};  // namespace blp
 
 #endif  // INCLUDE_UTILS_NODE_H_
