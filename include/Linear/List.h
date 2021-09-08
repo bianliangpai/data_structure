@@ -34,12 +34,6 @@ class _ListNode : public _NodeBase<T> {
   _ListNode* next;
 };
 
-template <typename T>
-std::ostream& operator<<(std::ostream& os, const _ListNode<T>& ln) {
-  std::cout << *ln;
-  return os;
-}
-
 template <typename T, typename Node = _ListNode<T>,
           typename Allocator = std::allocator<Node>>
 class List {
@@ -272,6 +266,13 @@ class List {
   }
 
   void swap(List& other) { std::swap(_begin, other._begin); }
+
+  friend std::ostream& operator<<(std::ostream& os, const List& l) {
+    for (T element : l) {
+      os << element << "->";
+    }
+    return os;
+  }
 
  private:
   void _Destroy(iterator it) { delete it.get(); }
