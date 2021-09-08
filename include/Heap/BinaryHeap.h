@@ -28,20 +28,20 @@ class BinaryHeap {
 
  public:
   BinaryHeap() : _c{}, _comp{} {}
-  BinaryHeap(const BinaryHeap& rhs) : _c{rhs._c}, _comp{rhs._comp} {}
-  BinaryHeap(BinaryHeap&& rhs) { Swap(std::move(rhs)); }
+  BinaryHeap(const BinaryHeap& other) : _c{other._c}, _comp{other._comp} {}
+  BinaryHeap(BinaryHeap&& other) { Swap(std::move(other)); }
   BinaryHeap(const_iterator beg, const_iterator end) : _c{beg, end}, _comp{} {}
-  BinaryHeap& operator=(const BinaryHeap& rhs) {
-    _c = rhs._c;
-    _comp = rhs._comp;
+  BinaryHeap& operator=(const BinaryHeap& other) {
+    _c = other._c;
+    _comp = other._comp;
   }
-  BinaryHeap& operator=(BinaryHeap&& rhs) {
-    _c = std::move(rhs._c);
-    _comp = std::move(rhs._comp);
+  BinaryHeap& operator=(BinaryHeap&& other) {
+    _c = std::move(other._c);
+    _comp = std::move(other._comp);
   }
-  void swap(BinaryHeap& rhs) {
-    std::swap(_c, rhs._c);
-    std::swap(_comp, rhs._comp);
+  void swap(BinaryHeap& other) {
+    std::swap(_c, other._c);
+    std::swap(_comp, other._comp);
   }
 
   const_reference top() { return _c.front(); }
