@@ -39,28 +39,28 @@ class BinaryHeap {
     _c = std::move(rhs._c);
     _comp = std::move(rhs._comp);
   }
-  void Swap(BinaryHeap& rhs) {
+  void swap(BinaryHeap& rhs) {
     std::swap(_c, rhs._c);
     std::swap(_comp, rhs._comp);
   }
 
-  const_reference Top() { return _c.front(); }
-  bool Empty() { return _c.empty(); }
+  const_reference top() { return _c.front(); }
+  bool empty() { return _c.empty(); }
 
-  void Push(const value_type& value) {
+  void push(const value_type& value) {
     _c.push_back(value);
     _UpHeap();
   }
-  void Push(value_type&& value) {
+  void push(value_type&& value) {
     _c.push_back(std::move(value));
     _UpHeap();
   }
   template <typename... Args>
-  void Emplace(Args&&... args) {
+  void emplace(Args&&... args) {
     _c.emplace_back(std::forward<Args>(args)...);
     _UpHeap();
   }
-  void Pop() {
+  void pop() {
     if (_c.size() == 0) {
       return;
     }
@@ -69,27 +69,28 @@ class BinaryHeap {
     _DownHeap();
   }
 
-  void PrintDebugMsg() {
-    _PrintBinaryHeap("", 1, false);
-    std::cout << std::endl;
-  };
+  friend std::ostream& operator<<(std::ostream& os, const BinaryHeap& bh) {
+    std::function<void(std::string, size_type, bool)> recursive_print =
+        [&](const std::string& prefix, size_type index, bool is_left) {
+          if (index > bh._c.size()) {
+            return;
+          }
 
- private:
-  void _PrintBinaryHeap(const std::string& prefix, size_type index,
-                        bool is_left) {
-    if (index > _c.size()) {
-      return;
-    }
+          os << prefix;
+          os << (is_left ? "|--" : "L--");
+          os << bh._c[index - 1] << std::endl;
 
-    std::cout << prefix;
-    std::cout << (is_left ? "|--" : "L--");
-    std::cout << _c[index - 1] << std::endl;
+          recursive_print(prefix + (is_left ? "|   " : "    "), index * 2,
+                          true);
+          recursive_print(prefix + (is_left ? "|   " : "    "), index * 2 + 1,
+                          false);
+        };
 
-    _PrintBinaryHeap(prefix + (is_left ? "|   " : "    "), index * 2, true);
-    _PrintBinaryHeap(prefix + (is_left ? "|   " : "    "), index * 2 + 1,
-                     false);
+    recursive_print("", 1, false);
+    return os;
   }
 
+ private:
   void _UpHeap() {
     if (_c.size() <= 1) {
       return;

@@ -8,13 +8,13 @@ int main() {
     bh.Push(10 - i);
   }
   std::cout << "build tree:\n";
-  bh.PrintDebugMsg();
+  std::cout << bh << std::endl;
   bh.Pop();
   std::cout << "first pop:\n";
-  bh.PrintDebugMsg();
+  std::cout << bh << std::endl;
   bh.Pop();
   std::cout << "second pop:\n";
-  bh.PrintDebugMsg();
+  std::cout << bh << std::endl;
 
   return 0;
 }
