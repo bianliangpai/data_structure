@@ -63,9 +63,8 @@ class List {
     typedef const wrapper_value_type& const_wrapper_reference;
 
    public:
-    iterator(const_wrapper_pointer wp = nullptr)
-        : _wp{const_cast<wrapper_pointer>(wp)} {}
-    iterator(const_wrapper_reference other) : _wp{other._wp} {}
+    iterator(wrapper_pointer wp = nullptr) : _wp{wp} {}
+    iterator(const iterator& other) : _wp{other._wp} {}
     reference operator*() const { return *(*_wp); }
     pointer operator->() const { return std::addressof(*_wp); }
     iterator& operator++() {
@@ -75,12 +74,12 @@ class List {
     bool operator==(const iterator& other) const { return _wp == other._wp; }
     bool operator!=(const iterator& other) const { return !(*this == other); }
 
-    const_wrapper_pointer get() const { return _wp; }
+    wrapper_pointer get() const { return _wp; }
     void set_next(const iterator& next_iterator) {
       _wp->next = next_iterator._wp;
     }
     void set_next(wrapper_pointer next_wp) { _wp->next = next_wp; }
-    const_wrapper_pointer get_next() const { return _wp->next; }
+    wrapper_pointer get_next() const { return _wp->next; }
 
    private:
     wrapper_pointer _wp;
